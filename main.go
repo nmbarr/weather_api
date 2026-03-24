@@ -18,26 +18,17 @@ import (
 // 5. Save cached results to Redis
 // //////////////////////////////////////////////////////////////////////////////
 
-// Load environment variables from .env
-func getEnvironmentVariable(key string) string {
-
-	// load .env file
-	err := godotenv.Load(".env")
-
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
-
-	return os.Getenv(key)
-}
-
-// This function validates the date(s) passed to determine how to structure the URL
-func checkDateParams(date1 string, date2 string) {}
-
 func main() {
 
-	BASE_URL := getEnvironmentVariable("VISUAL_CROSSING_WEATHER_API_URL")
-	API_KEY := getEnvironmentVariable("VISUAL_CROSSING_WEATHER_API_KEY")
+	// Load .env file
+	_ = godotenv.Load() 
+
+	BASE_URL := os.Getenv("VISUAL_CROSSING_WEATHER_API_URL")
+	API_KEY := os.Getenv("VISUAL_CROSSING_WEATHER_API_KEY")
+
+	if BASE_URL == "" || API_KEY == "" {
+		log.Fatal("Missing required environment variables")
+	}
 
 	// //////////////////////////////////////////////////////////////////////////////
 	// TODO: Make the location, date1, and date2 parameters configureable through CLI
@@ -50,9 +41,14 @@ func main() {
 	date1 := ""
 	date2 := ""
 
-	// http.Get expects the url already built, so build it here
-	url := fmt.Sprintf("%s/%s/%s/%s?key=%s", BASE_URL, location, date1, date2, API_KEY)
-	fmt.Println(url)
+	// Build the URL that will be comsumed by http.Get
+	url, err := buildURL(
+		BASE_URL,
+		location,
+		date1,
+		date2,
+		API_KEY,
+	)
 
     resp, err := http.Get(url)
     if err != nil {
