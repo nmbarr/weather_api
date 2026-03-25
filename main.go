@@ -1,11 +1,13 @@
 package main
 
 import (
-	"bufio"
+	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/joho/godotenv"
 )
@@ -23,10 +25,10 @@ func main() {
 	// Load .env file
 	_ = godotenv.Load() 
 
-	BASE_URL := os.Getenv("VISUAL_CROSSING_WEATHER_API_URL")
-	API_KEY := os.Getenv("VISUAL_CROSSING_WEATHER_API_KEY")
+	baseURL := os.Getenv("VISUAL_CROSSING_WEATHER_API_URL")
+	apiKey := os.Getenv("VISUAL_CROSSING_WEATHER_API_KEY")
 
-	if BASE_URL == "" || API_KEY == "" {
+	if baseURL == "" || apiKey == "" {
 		log.Fatal("Missing required environment variables")
 	}
 
@@ -35,37 +37,54 @@ func main() {
 	// //////////////////////////////////////////////////////////////////////////////
 
 	// The location must be an address, partial address, latitude/longitude, or zip code
-	location := "93436"
+	location := []string{"48864"}
 
 	// These are optional date parameters
-	date1 := ""
-	date2 := ""
+	// yyyy-MM-dd or yyyy-MM-ddTHH:mm:ss format
+	startDate := "2025-03-25"
+	// startDate := ""
+	endDate := "2025-04-20"
+	// endDate := ""
 
 	// Build the URL that will be comsumed by http.Get
-	url, err := buildURL(
-		BASE_URL,
-		location,
-		date1,
-		date2,
-		API_KEY,
-	)
+	url, err := buildURL(baseURL, location, startDate, endDate, apiKey)
+	if err != nil {
+		log.Fatal(err)
+	}
 
     resp, err := http.Get(url)
     if err != nil {
-        panic(err)
+        log.Fatal("Error making request: ", err)
     }
     defer resp.Body.Close()
 
     fmt.Println("Response status:", resp.Status)
 
-    scanner := bufio.NewScanner(resp.Body)
-	buf := make([]byte, 0, 64*1024)
-	scanner.Buffer(buf, 1024*1024)
-    for scanner.Scan() {
-        fmt.Println(scanner.Text())
-    }
+    // Read the response body
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatal("Error reading response body: ", err)
+	}
 
-    if err := scanner.Err(); err != nil {
-        panic(err)
-    }
+	// Unmarshal into an interface
+	var jsonData interface{}
+	if err := json.Unmarshal(body, &jsonData); err != nil {
+		log.Fatal("Error unmarshaling JSON: ", err)
+	}
+
+	// Marshal with indentation
+	prettyJSON, err := json.MarshalIndent(jsonData, "", "  ")
+	if err != nil {
+		log.Fatal("Error marshaling JSON: ", err)
+	}
+
+	// Write to file with datetime
+	// TODO: Need to check id the output dir exists
+	fileName := fmt.Sprintf("output/weather_response_%s.json", time.Now().Format("2006-01-02_15-04-05"))
+	if err := os.WriteFile(fileName, prettyJSON, 0644); err != nil {
+		log.Fatal("Error writing to file: ", err)
+	}
+
+	fmt.Printf("Weather data written to: %s\n", fileName)
+	// fmt.Println(string(prettyJSON))
 }
