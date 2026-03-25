@@ -1,7 +1,12 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
+	"time"
 )
 
 // This function validates the date(s) passed to determine how to structure the URL
@@ -65,5 +70,61 @@ func buildURL(baseURL string, locationParams []string, startDate, endDate, apiKe
 	return url, nil
 }
 
-// Maybe need this. maybe not
-func queryAPI(URL string) (string, error) {return "", nil}
+// Send the request to the API and handle potential errors
+func handleResponse(url string) ([]byte, error) {
+	
+	// Create client with timeout to prevent hanging
+	client := &http.Client{Timeout: 10 * time.Second}
+
+	resp, err := client.Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("Error making request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	fmt.Println("Response status: ", resp.Status)
+
+	// Handle non-success status codes
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		switch resp.StatusCode {
+		case http.StatusBadRequest:
+			// 400 BAD_REQUEST
+			return nil, fmt.Errorf("HTTP %d: The format of the API is incorrect or an invalid parameter or combination of parameters was supplied", resp.StatusCode)
+		case http.StatusUnauthorized:
+			// 401 UNAUTHORIZED
+			return nil, fmt.Errorf("HTTP %d: There is a problem with the API key, account or subscription. May also be returned if a feature is requested for which the account does not have access to", resp.StatusCode)
+		case http.StatusNotFound:
+			// 404 NOT_FOUND
+			return nil, fmt.Errorf("HTTP %d: The request cannot be matched to any valid API request endpoint structure", resp.StatusCode)
+		case http.StatusTooManyRequests:
+			// 429 TOO_MANY_REQUESTS
+			return nil, fmt.Errorf("HTTP %d: The account has exceeded their assigned limits", resp.StatusCode)
+		case http.StatusInternalServerError:
+			// 500 INTERNAL_SERVER_ERROR
+			return nil, fmt.Errorf("HTTP %d: A general error has occurred processing the request", resp.StatusCode)
+		default:
+			// Catch-all for other error codes
+			return nil, fmt.Errorf("HTTP %d: Unexpected error status", resp.StatusCode)
+		}
+	}
+
+	// Read the response body
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("Error reading response body: %w", err)
+	}
+
+	// if http.Status returns 200 and the response body can be read, return body and no error
+	return body, nil
+}
+
+// Format JSON with indentation
+func formatResponse(body []byte) (bytes.Buffer, error) {
+
+	var formattedJSON bytes.Buffer
+	if err := json.Indent(&formattedJSON, body, "", "  "); err != nil {
+		return formattedJSON, fmt.Errorf("Error formatting JSON: %w", err)
+	}
+
+	return formattedJSON, nil
+}

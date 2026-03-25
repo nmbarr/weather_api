@@ -1,13 +1,9 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"io"
 	"log"
-	"net/http"
 	"os"
-	"time"
 
 	"github.com/joho/godotenv"
 )
@@ -37,7 +33,7 @@ func main() {
 	// //////////////////////////////////////////////////////////////////////////////
 
 	// The location must be an address, partial address, latitude/longitude, or zip code
-	location := []string{"48864"}
+	location := []string{"93436"}
 
 	// These are optional date parameters
 	// yyyy-MM-dd or yyyy-MM-ddTHH:mm:ss format
@@ -46,45 +42,34 @@ func main() {
 	endDate := "2025-04-20"
 	// endDate := ""
 
-	// Build the URL that will be comsumed by http.Get
+	// Build the URL that will be consumed by handleResponse
 	url, err := buildURL(baseURL, location, startDate, endDate, apiKey)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-    resp, err := http.Get(url)
-    if err != nil {
-        log.Fatal("Error making request: ", err)
-    }
-    defer resp.Body.Close()
+	// Send request to the API and hande the response
+	body, err := handleResponse(url)
 
-    fmt.Println("Response status:", resp.Status)
-
-    // Read the response body
-	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Fatal("Error reading response body: ", err)
+		log.Fatal(err)
 	}
 
-	// Unmarshal into an interface
-	var jsonData interface{}
-	if err := json.Unmarshal(body, &jsonData); err != nil {
-		log.Fatal("Error unmarshaling JSON: ", err)
-	}
-
-	// Marshal with indentation
-	prettyJSON, err := json.MarshalIndent(jsonData, "", "  ")
+	// Format the JSON response in preparation for writing to file
+	formattedJSON, err := formatResponse(body)
+	
 	if err != nil {
-		log.Fatal("Error marshaling JSON: ", err)
+		log.Fatal(err)
 	}
 
-	// Write to file with datetime
-	// TODO: Need to check id the output dir exists
-	fileName := fmt.Sprintf("output/weather_response_%s.json", time.Now().Format("2006-01-02_15-04-05"))
-	if err := os.WriteFile(fileName, prettyJSON, 0644); err != nil {
-		log.Fatal("Error writing to file: ", err)
+	outputDir := "output"
+
+	// Write the formatted JSON response to file
+	fileErr := writeToFile(outputDir, formattedJSON)
+
+	if fileErr != nil {
+		log.Fatal(fileErr)
 	}
 
-	fmt.Printf("Weather data written to: %s\n", fileName)
-	// fmt.Println(string(prettyJSON))
+	fmt.Println("Successfully requested weather data from API.")
 }
