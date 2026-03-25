@@ -20,22 +20,26 @@ A Go-based client for querying the [Visual Crossing Weather API](https://www.vis
 ## Installation
 
 1. Clone the repository:
+
 ```bash
 git clone <repository-url>
 cd weather_api
 ```
 
 2. Install dependencies:
+
 ```bash
 go mod download
 ```
 
 3. Create a `.env` file from the example:
+
 ```bash
 cp .env.example .env
 ```
 
 4. Add your Visual Crossing API credentials to `.env`:
+
 ```
 VISUAL_CROSSING_WEATHER_API_URL=https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline
 VISUAL_CROSSING_WEATHER_API_KEY=your_api_key_here
@@ -53,6 +57,7 @@ endDate := "2025-04-20"             // yyyy-MM-dd format (optional)
 ```
 
 Run the application:
+
 ```bash
 go run .
 ```
@@ -83,6 +88,7 @@ weather_api/
 ## Key Functions
 
 ### `api.go`
+
 - `handleDateParams()`: Validates and formats date parameters for the API
 - `handleLocationParams()`: Validates location parameters (stub)
 - `buildURL()`: Constructs the complete API request URL
@@ -90,11 +96,13 @@ weather_api/
 - `formatResponse()`: Pretty-prints JSON response
 
 ### `helpers.go`
+
 - `writeToFile()`: Writes formatted JSON to timestamped output file
 
 ## Error Handling
 
 The application handles the following HTTP error codes:
+
 - **400**: Invalid parameters or malformed request
 - **401**: API key issues or subscription problems
 - **404**: Invalid API endpoint
@@ -117,7 +125,3 @@ For detailed API documentation, see the [Visual Crossing Weather API Timeline Do
 ## Dependencies
 
 - [godotenv](https://github.com/joho/godotenv) - Environment variable management
-
-## License
-
-[Add your license here]
