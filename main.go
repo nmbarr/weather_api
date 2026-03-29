@@ -33,17 +33,29 @@ func main() {
 	// //////////////////////////////////////////////////////////////////////////////
 
 	// The location must be an address, partial address, latitude/longitude, or zip code
-	location := []string{"93436"}
+	locationInput := []string{"93436"}
 
 	// These are optional date parameters
 	// yyyy-MM-dd or yyyy-MM-ddTHH:mm:ss format
-	startDate := "2025-03-25"
+	startDate := "2025-03-20"
 	// startDate := ""
 	endDate := "2025-04-20"
 	// endDate := ""
 
+	locationParam, locationErr := handleLocationParams(locationInput)
+
+	if locationErr != nil {
+		log.Fatal("Error handling location params: %w", locationErr)
+	}
+
+	dateParam, dateErr := handleDateParams(startDate, endDate)
+	
+	if dateErr != nil {
+		log.Fatal("Error handling date params: %w", dateErr)
+	}
+
 	// Build the URL that will be consumed by handleResponse
-	url, err := buildURL(baseURL, location, startDate, endDate, apiKey)
+	url, err := buildURL(baseURL, locationParam, dateParam, apiKey)
 	if err != nil {
 		log.Fatal(err)
 	}
